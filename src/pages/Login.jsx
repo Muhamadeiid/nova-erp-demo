@@ -1,0 +1,148 @@
+import { useState, useEffect } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import { useNavigate } from 'react-router-dom'
+import { loginStart, loginSuccess, loginFailure, clearError } from '../store/slices/authSlice'
+import { login } from '../services/authService'
+import { Eye, EyeOff } from 'lucide-react'
+import { DEMO_MODE } from '../demo/install'
+import { DEMO_CREDENTIALS } from '../demo/mockApi'
+
+export default function Login() {
+  const dispatch        = useDispatch()
+  const navigate        = useNavigate()
+  const { loading, error, isAuthenticated } = useSelector((s) => s.auth)
+
+  const [email,    setEmail]    = useState('')
+  const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [capsLock, setCapsLock] = useState(false)
+
+  useEffect(() => {
+    if (isAuthenticated) navigate('/', { replace: true })
+  }, [isAuthenticated, navigate])
+
+  useEffect(() => {
+    return () => dispatch(clearError())
+  }, [dispatch])
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    if (loading) return
+    dispatch(loginStart())
+    try {
+      const data = await login(email.trim().toLowerCase(), password)
+      dispatch(loginSuccess(data))
+    } catch (err) {
+      const message = err.response?.data?.message
+        || (err.request ? 'Cannot connect to the server. Please refresh and try again.' : err.message)
+      dispatch(loginFailure(message))
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-[#f4f5f7] flex items-center justify-center p-4">
+      <div className="w-full max-w-sm">
+
+        {/* Logo */}
+        <div className="flex flex-col items-center gap-2 mb-8">
+          <img src="/logo.svg" alt="Nova ERP" className="h-14 w-auto object-contain" />
+          <p className="text-[#8892ab] text-xs">HR &amp; Operations Portal</p>
+        </div>
+
+        {/* Card */}
+        <div className="bg-white border border-[#e2e4ea] rounded-2xl shadow-sm overflow-hidden">
+
+          <div className="px-6 pt-6 pb-2">
+            <h1 className="text-[#1a1f36] font-bold text-lg">Sign in</h1>
+            <p className="text-[#8892ab] text-sm mt-1">Enter your credentials to continue</p>
+            {DEMO_MODE && (
+              <button
+                type="button"
+                onClick={() => { setEmail(DEMO_CREDENTIALS.email); setPassword(DEMO_CREDENTIALS.password) }}
+                className="mt-3 w-full rounded-lg border border-dashed border-primary-300 bg-primary-50 px-3 py-2 text-left text-xs text-primary-700"
+              >
+                Live demo: <strong>{DEMO_CREDENTIALS.email}</strong> / <strong>{DEMO_CREDENTIALS.password}</strong>
+                <span className="block text-primary-500">Click to fill in</span>
+              </button>
+            )}
+          </div>
+
+          <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
+
+            {/* Error */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-lg">
+                {error}
+              </div>
+            )}
+
+            {/* Email */}
+            <div>
+              <label className="block text-xs font-semibold text-[#4a5073] uppercase tracking-wide mb-1.5">
+                Email
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoCapitalize="none"
+                autoCorrect="off"
+                autoComplete="username"
+                spellCheck={false}
+                placeholder="you@company.com"
+                required
+                className="w-full px-3 py-2.5 text-sm bg-white border border-[#e2e4ea] rounded-lg text-[#1a1f36] placeholder-[#c0c4d0] outline-none focus:border-[#1e2d5a] focus:ring-2 focus:ring-[#1e2d5a]/10 transition-all"
+              />
+            </div>
+
+            {/* Password */}
+            <div>
+              <label className="block text-xs font-semibold text-[#4a5073] uppercase tracking-wide mb-1.5">
+                Password
+              </label>
+              <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyUp={(e) => setCapsLock(e.getModifierState('CapsLock'))}
+                onKeyDown={(e) => setCapsLock(e.getModifierState('CapsLock'))}
+                autoCapitalize="none"
+                autoCorrect="off"
+                autoComplete="current-password"
+                spellCheck={false}
+                placeholder="••••••••"
+                required
+                className="w-full px-3 py-2.5 pr-10 text-sm bg-white border border-[#e2e4ea] rounded-lg text-[#1a1f36] placeholder-[#c0c4d0] outline-none focus:border-[#1e2d5a] focus:ring-2 focus:ring-[#1e2d5a]/10 transition-all"
+              />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(value => !value)}
+                  title={showPassword ? 'Hide password' : 'Show password'}
+                  className="absolute right-2 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center text-[#8892ab] hover:text-[#1e2d5a]"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {capsLock && <p className="mt-1.5 text-xs font-semibold text-amber-600">Caps Lock is on</p>}
+            </div>
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-2.5 bg-[#1e2d5a] hover:bg-[#253468] text-white font-semibold text-sm rounded-lg transition-all disabled:opacity-60 disabled:cursor-not-allowed mt-2"
+            >
+              {loading ? 'Signing in...' : 'Sign in'}
+            </button>
+
+          </form>
+        </div>
+
+        <p className="text-center text-xs text-[#8892ab] mt-6">
+          © {new Date().getFullYear()} Nova ERP · Demo
+        </p>
+      </div>
+    </div>
+  )
+}
